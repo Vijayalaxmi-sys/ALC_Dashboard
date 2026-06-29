@@ -646,26 +646,85 @@ def scalar_contains_any(value, selected_values):
     return str(value).strip() in selected_values
 
 
+
+def safe_multiselect(label, options, key):
+    """
+    Cascading dropdown helper.
+    Shows only valid options and removes old selected values
+    that are no longer available after another filter changes.
+    """
+    options = sorted(list(dict.fromkeys(options)))
+
+    if key in st.session_state:
+        st.session_state[key] = [
+            value for value in st.session_state[key]
+            if value in options
+        ]
+
+    selected = st.multiselect(
+        label,
+        options,
+        key=key
+    )
+
+    if not options:
+        st.caption("No data applicable for this search.")
+
+    return selected
+
+
 def apply_filters(df, categories, locations, organizations, affected_groups, years, min_confidence, search_text):
     filtered = df.copy()
 
+    # Safety: make sure expected columns always exist
+    list_columns = ["locations", "organizations", "affected_groups", "display_years"]
+    for col in list_columns:
+        if col not in filtered.columns:
+            filtered[col] = [[] for _ in range(len(filtered))]
+
+    scalar_columns = ["category", "challenge", "evidence_text", "extraction_confidence"]
+    for col in scalar_columns:
+        if col not in filtered.columns:
+            filtered[col] = ""
+
     if categories:
-        filtered = filtered[filtered["category"].apply(lambda x: scalar_contains_any(x, categories))]
+        mask = filtered["category"].apply(lambda x: scalar_contains_any(x, categories))
+        filtered = filtered[mask.astype(bool)]
+        if filtered.empty:
+            return filtered
 
     if locations:
-        filtered = filtered[filtered["locations"].apply(lambda x: list_contains_any(x, locations))]
+        mask = filtered["locations"].apply(lambda x: list_contains_any(x, locations))
+        filtered = filtered[mask.astype(bool)]
+        if filtered.empty:
+            return filtered
 
     if organizations:
-        filtered = filtered[filtered["organizations"].apply(lambda x: list_contains_any(x, organizations))]
+        mask = filtered["organizations"].apply(lambda x: list_contains_any(x, organizations))
+        filtered = filtered[mask.astype(bool)]
+        if filtered.empty:
+            return filtered
 
     if affected_groups:
-        filtered = filtered[filtered["affected_groups"].apply(lambda x: list_contains_any(x, affected_groups))]
+        mask = filtered["affected_groups"].apply(lambda x: list_contains_any(x, affected_groups))
+        filtered = filtered[mask.astype(bool)]
+        if filtered.empty:
+            return filtered
 
     if years:
-        filtered = filtered[filtered["display_years"].apply(lambda x: list_contains_any(x, years))]
+        mask = filtered["display_years"].apply(lambda x: list_contains_any(x, years))
+        filtered = filtered[mask.astype(bool)]
+        if filtered.empty:
+            return filtered
 
     if min_confidence is not None:
+        filtered["extraction_confidence"] = pd.to_numeric(
+            filtered["extraction_confidence"],
+            errors="coerce"
+        )
         filtered = filtered[filtered["extraction_confidence"].fillna(0) >= min_confidence]
+        if filtered.empty:
+            return filtered
 
     if search_text:
         query = search_text.strip().lower()
@@ -737,25 +796,114 @@ with st.sidebar:
     st.header("Filters")
     st.caption("Select filters to update the evidence table and charts.")
 
+    # --------------------------------------------------------
+    # 1. Challenge category options from full data
+    # --------------------------------------------------------
     category_options = get_filter_options(evidence_df, scalar_col="category")
-    location_options = get_filter_options(evidence_df, list_col="locations")
-    organization_options = get_filter_options(evidence_df, list_col="organizations")
-    affected_group_options = get_filter_options(evidence_df, list_col="affected_groups")
 
-    year_values = sorted(
-        set(
-            year
-            for row in evidence_df["display_years"]
-            for year in safe_list(row)
-        ),
-        key=lambda x: int(x)
+    selected_categories = safe_multiselect(
+        "Challenge category",
+        category_options,
+        key="selected_categories"
     )
 
-    selected_categories = st.multiselect("Challenge category", category_options)
-    selected_locations = st.multiselect("Location", location_options)
-    selected_organizations = st.multiselect("Organization", organization_options)
-    selected_affected_groups = st.multiselect("Affected group", affected_group_options)
-    selected_years = st.multiselect("Year", year_values)
+    # --------------------------------------------------------
+    # 2. Location options depend on selected category
+    # --------------------------------------------------------
+    location_base_df = apply_filters(
+        df=evidence_df,
+        categories=selected_categories,
+        locations=[],
+        organizations=[],
+        affected_groups=[],
+        years=[],
+        min_confidence=None,
+        search_text=""
+    )
+
+    location_options = get_filter_options(location_base_df, list_col="locations")
+
+    selected_locations = safe_multiselect(
+        "Location",
+        location_options,
+        key="selected_locations"
+    )
+
+    # --------------------------------------------------------
+    # 3. Organization options depend on category + location
+    # --------------------------------------------------------
+    organization_base_df = apply_filters(
+        df=evidence_df,
+        categories=selected_categories,
+        locations=selected_locations,
+        organizations=[],
+        affected_groups=[],
+        years=[],
+        min_confidence=None,
+        search_text=""
+    )
+
+    organization_options = get_filter_options(organization_base_df, list_col="organizations")
+
+    selected_organizations = safe_multiselect(
+        "Organization",
+        organization_options,
+        key="selected_organizations"
+    )
+
+    # --------------------------------------------------------
+    # 4. Affected group options depend on category + location + organization
+    # --------------------------------------------------------
+    affected_group_base_df = apply_filters(
+        df=evidence_df,
+        categories=selected_categories,
+        locations=selected_locations,
+        organizations=selected_organizations,
+        affected_groups=[],
+        years=[],
+        min_confidence=None,
+        search_text=""
+    )
+
+    affected_group_options = get_filter_options(affected_group_base_df, list_col="affected_groups")
+
+    selected_affected_groups = safe_multiselect(
+        "Affected group",
+        affected_group_options,
+        key="selected_affected_groups"
+    )
+
+    # --------------------------------------------------------
+    # 5. Year options depend on category + location + organization + affected group
+    # --------------------------------------------------------
+    year_base_df = apply_filters(
+        df=evidence_df,
+        categories=selected_categories,
+        locations=selected_locations,
+        organizations=selected_organizations,
+        affected_groups=selected_affected_groups,
+        years=[],
+        min_confidence=None,
+        search_text=""
+    )
+
+    if "display_years" not in year_base_df.columns:
+        year_values = []
+    else:
+        year_values = sorted(
+            set(
+                year
+                for row in year_base_df["display_years"]
+                for year in safe_list(row)
+            ),
+            key=lambda x: int(x)
+        )
+
+    selected_years = safe_multiselect(
+        "Year",
+        year_values,
+        key="selected_years"
+    )
 
     min_confidence = st.slider(
         "Minimum extraction confidence",
@@ -765,7 +913,24 @@ with st.sidebar:
         step=0.05
     )
 
-    search_text = st.text_input("Search evidence", placeholder="Search challenge or evidence text")
+    search_text = st.text_input(
+        "Search evidence",
+        placeholder="Search challenge or evidence text"
+    )
+
+    if st.button("Clear all filters", use_container_width=True):
+        for key in [
+            "selected_categories",
+            "selected_locations",
+            "selected_organizations",
+            "selected_affected_groups",
+            "selected_years"
+        ]:
+            if key in st.session_state:
+                st.session_state[key] = []
+
+        st.cache_data.clear()
+        st.rerun()
 
     if st.button("Refresh data", use_container_width=True):
         st.cache_data.clear()
@@ -831,7 +996,7 @@ with tab_evidence:
     )
 
     if filtered_df.empty:
-        st.info("No evidence records match the selected filters.")
+        st.info("No evidence records match this exact filter combination. Try removing one filter or selecting from the available dropdown options.")
     else:
         display_df = filtered_df.copy()
 
@@ -892,7 +1057,7 @@ with tab_insights:
     st.caption("Charts summarize the currently filtered evidence records. Extraction confidence is model-generated and is not reported by the original source.")
 
     if filtered_df.empty:
-        st.info("No evidence records match the selected filters.")
+        st.info("No evidence records match this exact filter combination. Try removing one filter or selecting from the available dropdown options.")
     else:
         category_summary_df = build_category_summary(filtered_df)
         location_summary_df = explode_list_summary(filtered_df, "locations", "location")
@@ -1145,7 +1310,7 @@ with tab_sources:
     )
 
     if filtered_df.empty:
-        st.info("No source records match the selected filters.")
+        st.info("No source records match this exact filter combination. Try removing one filter or selecting from the available dropdown options.")
     else:
         source_df = build_source_table(filtered_df)
 
