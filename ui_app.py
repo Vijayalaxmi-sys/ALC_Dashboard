@@ -1011,54 +1011,58 @@ tab_overview, tab_evidence, tab_insights, tab_sources = st.tabs(
 # ============================================================
 
 with tab_overview:
-    st.markdown("### Nova Scotia ALC Challenges – Project Overview")
+    st.markdown("## Nova Scotia ALC Challenges – Project Overview")
+
     st.markdown(
         """
-        <div class="section-note">
-        This page explains the purpose of the project, where the data comes from, how it is refined, and how the final evidence dashboard is created.
-        </div>
-        """,
-        unsafe_allow_html=True
+        This project collects publicly available information on **Alternate Level of Care (ALC) challenges in Nova Scotia** 
+        and converts it into a clear, structured system for research, review, and decision support. ALC refers to situations 
+        where patients no longer need acute hospital care but remain in hospital because the next level of care, such as 
+        long-term care, home care, community support, or discharge placement, is not available at the right time.
+
+        The system collects data from public sources such as **Nova Scotia government websites, Nova Scotia Health pages, 
+        public reports, open data sources, news articles, advocacy organizations, and public discussion platforms**. 
+        The focus is on healthcare challenges such as delayed discharge, long-term care waitlists, home care shortages, 
+        hospital overcrowding, emergency department pressure, patient flow delays, staffing challenges, caregiver burden, 
+        and continuing care capacity.
+
+        The process starts by searching public sources using Nova Scotia-focused healthcare keywords. The system stores 
+        possible source links in a source registry so every source can be tracked. An AI model then reviews each source 
+        using its title, link, summary, and source type, and selects only the most relevant ALC-related sources for deeper analysis.
+
+        The selected webpages and PDF reports are downloaded and converted into readable text. The Artificial Intelligence (AI) 
+        model then extracts key information from the text, including the healthcare challenge, supporting evidence, affected 
+        stakeholders, organizations, locations, time periods, interventions, outcomes, metrics, severity, and confidence levels. 
+        This converts long articles and reports into structured research-ready records.
+
+        Before loading the data into the final system, the records are cleaned and refined. The system keeps only Nova Scotia-related 
+        information, removes weak or unclear records, removes duplicates, and keeps only evidence that has meaningful challenge 
+        details and source support.
+
+        The cleaned data is loaded into a **Neo4j knowledge graph database**, where sources, evidence, challenges, locations, 
+        stakeholders, organizations, interventions, outcomes, and metrics are connected. This makes it easier to understand how 
+        different ALC issues are related and where the supporting evidence comes from.
+
+        The final output is shown on a user screen, where users can view statistics, filter results, read supporting evidence, 
+        and open original source links for verification. In simple terms, this project turns scattered public information about 
+        Nova Scotia ALC challenges into a clean, connected, and easy-to-explore evidence system for professors, researchers, 
+        healthcare leaders, and policy reviewers.
+        """
     )
 
-    overview_col1, overview_col2 = st.columns([1.05, 1])
+    st.divider()
 
-    with overview_col1:
-        #st.markdown("### Nova Scotia ALC Challenges – Project Overview")
-        st.markdown(
-            """
-            <div class="overview-card">
-            <p>This project collects publicly available information on <strong>Alternate Level of Care (ALC) challenges in Nova Scotia</strong> and converts it into a clear, structured system for research, review, and decision support. ALC refers to situations where patients no longer need acute hospital care but remain in hospital because the next level of care, such as long-term care, home care, community support, or discharge placement, is not available at the right time.</p>
+    st.markdown("### End-to-End System Flow")
 
-            <p>The system collects data from public sources such as <strong>Nova Scotia government websites, Nova Scotia Health pages, public reports, open data sources, news articles, advocacy organizations, and public discussion platforms</strong>. The focus is on healthcare challenges such as delayed discharge, long-term care waitlists, home care shortages, hospital overcrowding, emergency department pressure, patient flow delays, staffing challenges, caregiver burden, and continuing care capacity.</p>
-
-            <p>The process starts by searching public sources using Nova Scotia-focused healthcare keywords. The system stores possible source links in a source registry so every source can be tracked. An Artificial Intelligence (AI) model then reviews each source using its title, link, summary, and source type, and selects only the most relevant ALC-related sources for deeper analysis.</p>
-
-            <p>The selected webpages and PDF reports are downloaded and converted into readable text. The AI model then extracts key information from the text, including the healthcare challenge, supporting evidence, affected stakeholders, organizations, locations, time periods, interventions, outcomes, metrics, severity, and confidence levels. This converts long articles and reports into structured research-ready records.</p>
-
-            <p>Before loading the data into the final system, the records are cleaned and refined. The system keeps only Nova Scotia-related information, removes weak or unclear records, removes duplicates, and keeps only evidence that has meaningful challenge details and source support.</p>
-
-            <p>The cleaned data is loaded into a <strong>Neo4j knowledge graph database</strong>, where sources, evidence, challenges, locations, stakeholders, organizations, interventions, outcomes, and metrics are connected. This makes it easier to understand how different ALC issues are related and where the supporting evidence comes from.</p>
-
-            <p>The final output is shown in this user screen, where users can view statistics, filter results, read supporting evidence, and open original source links for verification. In simple terms, this project turns scattered public information about Nova Scotia ALC challenges into a clean, connected, and easy-to-explore evidence system for professors, researchers, healthcare leaders, and policy reviewers.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
+    if PROJECT_IMAGE.exists():
+        st.image(
+            str(PROJECT_IMAGE),
+            caption="End-to-end system flow from public information collection to final dashboard.",
+            use_container_width=True
         )
-
-    with overview_col2:
-        if PROJECT_IMAGE.exists():
-            st.image(
-                str(PROJECT_IMAGE),
-                caption="End-to-end system flow for the Nova Scotia ALC Challenges Knowledge Graph",
-                use_container_width=True
-            )
-        else:
-            st.warning(
-                "Project flow image not found. Please place the image at: assets/alc_system_flow.png"
-            )
-
-
+    else:
+        st.warning(f"Project flow image not found: {PROJECT_IMAGE}")
+        
 # ============================================================
 # TAB 1: EVIDENCE EXPLORER
 # ============================================================
