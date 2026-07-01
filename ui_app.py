@@ -17,7 +17,7 @@ YEAR_START = 2020
 YEAR_END = 2026
 MAX_RECORDS = 5000
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 PROJECT_IMAGE = BASE_DIR / "ALC-End to End.png"
 
 # ============================================================
