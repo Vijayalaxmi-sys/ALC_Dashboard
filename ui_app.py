@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -16,6 +17,8 @@ YEAR_START = 2020
 YEAR_END = 2026
 MAX_RECORDS = 5000
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_IMAGE = BASE_DIR / "ALC-End to End.png"
 
 # ============================================================
 # PAGE CONFIG
@@ -63,6 +66,24 @@ st.markdown(
             color: #374151;
             font-size: 0.88rem;
             margin-bottom: 0.8rem;
+        }
+
+        .overview-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.0rem 1.1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .overview-card p {
+            font-size: 0.92rem;
+            line-height: 1.55;
+            color: #374151;
+        }
+
+        .overview-card strong {
+            color: #111827;
         }
 
         .kpi-card {
@@ -364,7 +385,6 @@ def apply_chart_layout(fig, height=360, show_legend=True, legend_position="botto
 
 
 
-
 def prepare_horizontal_stack_df(stack_df, stack_col, top_n_categories=10):
     """
     Prepares stacked bar data as horizontal bars.
@@ -386,6 +406,7 @@ def prepare_horizontal_stack_df(stack_df, stack_col, top_n_categories=10):
     prepared = prepared.sort_values(["category_total", stack_col], ascending=[True, True])
 
     return prepared
+
 
 def render_kpi(label, value, icon=""):
     st.markdown(
@@ -975,9 +996,67 @@ st.write("")
 # TABS
 # ============================================================
 
-tab_evidence, tab_insights, tab_sources = st.tabs(
-    ["🔎 Extracted Challenges", "📊 Dashboard Insights", "🔗 Original Sources"]
+tab_overview, tab_evidence, tab_insights, tab_sources = st.tabs(
+    [
+        "🏠 Project Overview",
+        "🔎 Extracted Challenges",
+        "📊 Dashboard Insights",
+        "🔗 Original Sources"
+    ]
 )
+
+
+# ============================================================
+# TAB 0: PROJECT OVERVIEW
+# ============================================================
+
+with tab_overview:
+    st.markdown("### Nova Scotia ALC Challenges – Project Overview")
+    st.markdown(
+        """
+        <div class="section-note">
+        This page explains the purpose of the project, where the data comes from, how it is refined, and how the final evidence dashboard is created.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    overview_col1, overview_col2 = st.columns([1.05, 1])
+
+    with overview_col1:
+        #st.markdown("### Nova Scotia ALC Challenges – Project Overview")
+        st.markdown(
+            """
+            <div class="overview-card">
+            <p>This project collects publicly available information on <strong>Alternate Level of Care (ALC) challenges in Nova Scotia</strong> and converts it into a clear, structured system for research, review, and decision support. ALC refers to situations where patients no longer need acute hospital care but remain in hospital because the next level of care, such as long-term care, home care, community support, or discharge placement, is not available at the right time.</p>
+
+            <p>The system collects data from public sources such as <strong>Nova Scotia government websites, Nova Scotia Health pages, public reports, open data sources, news articles, advocacy organizations, and public discussion platforms</strong>. The focus is on healthcare challenges such as delayed discharge, long-term care waitlists, home care shortages, hospital overcrowding, emergency department pressure, patient flow delays, staffing challenges, caregiver burden, and continuing care capacity.</p>
+
+            <p>The process starts by searching public sources using Nova Scotia-focused healthcare keywords. The system stores possible source links in a source registry so every source can be tracked. An Artificial Intelligence (AI) model then reviews each source using its title, link, summary, and source type, and selects only the most relevant ALC-related sources for deeper analysis.</p>
+
+            <p>The selected webpages and PDF reports are downloaded and converted into readable text. The AI model then extracts key information from the text, including the healthcare challenge, supporting evidence, affected stakeholders, organizations, locations, time periods, interventions, outcomes, metrics, severity, and confidence levels. This converts long articles and reports into structured research-ready records.</p>
+
+            <p>Before loading the data into the final system, the records are cleaned and refined. The system keeps only Nova Scotia-related information, removes weak or unclear records, removes duplicates, and keeps only evidence that has meaningful challenge details and source support.</p>
+
+            <p>The cleaned data is loaded into a <strong>Neo4j knowledge graph database</strong>, where sources, evidence, challenges, locations, stakeholders, organizations, interventions, outcomes, and metrics are connected. This makes it easier to understand how different ALC issues are related and where the supporting evidence comes from.</p>
+
+            <p>The final output is shown in this user screen, where users can view statistics, filter results, read supporting evidence, and open original source links for verification. In simple terms, this project turns scattered public information about Nova Scotia ALC challenges into a clean, connected, and easy-to-explore evidence system for professors, researchers, healthcare leaders, and policy reviewers.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with overview_col2:
+        if PROJECT_IMAGE.exists():
+            st.image(
+                str(PROJECT_IMAGE),
+                caption="End-to-end system flow for the Nova Scotia ALC Challenges Knowledge Graph",
+                use_container_width=True
+            )
+        else:
+            st.warning(
+                "Project flow image not found. Please place the image at: assets/alc_system_flow.png"
+            )
 
 
 # ============================================================
