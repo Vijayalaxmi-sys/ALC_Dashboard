@@ -1052,8 +1052,6 @@ with tab_overview:
 
     st.divider()
 
-    st.markdown("### End-to-End System Flow")
-
     if PROJECT_IMAGE.exists():
         st.image(
             str(PROJECT_IMAGE),
